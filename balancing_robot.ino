@@ -32,12 +32,12 @@ int in2 = 12;
 Encoder myEnc(3,9);
 //   avoid using pins with LEDs attached
 
-double pos_Kp = 1500.0; // Proportional Gain (TBD)
-double pos_Kd = 500.0; // Derivative Gain (TBD)
+double pos_Kp = 1250.0; // Proportional Gain (TBD) 1500
+double pos_Kd = 1250.0/3.5; // Derivative Gain (TBD)     500
 double pos_Ki = 0.0; // Integral Gain (TBD)
 double pos_pidOUT; 
 double current_pos;
-double desired_pos = -0.05;
+double desired_pos = -0.04;
 double position_delta;
 
 // MPU Control/Status (Don't know much about this just copying from chillibasket
@@ -189,26 +189,6 @@ void loop() {
   //Serial.println(current_pos);
   //motor_control();
   
-  /*
-  Serial.print("Current position: ");
-  Serial.print(current_pos);
-  Serial.print(", PID out: ");
-  Serial.print(pos_pidOUT);
-  Serial.print(", Setpoint: ");
-  Serial.println(desired_pos);
-  
-  
-  //speedControl();
-  
-  Serial.print(ypr[0] * 180/M_PI);
-  Serial.print(", ");
-  Serial.print(ypr[1] * 180/M_PI);
-  Serial.print(", ");
-  Serial.print(ypr[2] * 180/M_PI);
-  Serial.print(", ");
-  Serial.println(pos_pidOUT);
-  */
-  //delay(100);
 }
 
 // This function lets you control speed of the motors
@@ -273,8 +253,8 @@ void motor_control() {
     digitalWrite(in2, LOW);
   }
 
-   analogWrite(enB, abs(pos_pidOUT));
-   analogWrite(enA, abs(pos_pidOUT));
+   analogWrite(enB, min(abs(int(pos_pidOUT)) + 100.0, 255));
+   analogWrite(enA, min(abs(int(pos_pidOUT)) + 100.0, 255));
 }
 
 
@@ -293,6 +273,5 @@ ISR(TIMER1_COMPA_vect){
   TCNT1  = 0;                  //First, set the timer back to 0 so it resets for next interrupt
   current_pos = ypr[2];// * 180/M_PI;
   pos_PID.Compute();
-  //Serial.println(current_pos);
   motor_control();
 }
