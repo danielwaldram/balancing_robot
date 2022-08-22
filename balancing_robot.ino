@@ -30,15 +30,16 @@ int in2 = 12;
 //   Low Performance:  neither pin has interrupt capability
 //Encoder myEnc(2,10);
 Encoder myEnc(3,9);
-//   avoid using pins with LEDs attached
+//   avoid using pins with LEDs aokmttached
 
-double pos_Kp = 1250.0; // Proportional Gain (TBD) 1500
-double pos_Kd = 1250.0/3.5; // Derivative Gain (TBD)     500
-double pos_Ki = 0.0; // Integral Gain (TBD)
-double pos_pidOUT; 
+double pos_Kp = 975.0; // Proportional Gain (TBD) 1500
+double pos_Kd = 600.0; // Derivative Gain (TBD)     500
+double pos_Ki = 200.0; // Integral Gain (TBD)
+double pos_pidOUT = 0; 
 double current_pos;
-double desired_pos = -0.04;
+double desired_pos = -0.02;
 double position_delta;
+double alpha = 0.9; // Low pass filter scaling
 
 // MPU Control/Status (Don't know much about this just copying from chillibasket
 // -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -229,12 +230,6 @@ void speedControl() {
 
 // This function lets you control speed of the motors
 void motor_control() {
-  counter += 1;
-    if (counter > 999){
-      pinstate = !pinstate;
-      counter = 0;
-      digitalWrite(LED_BUILTIN,pinstate); 
-    }
   // Turn on motors
   //digitalWrite(in3, LOW);
   //digitalWrite(in4, HIGH);
@@ -253,8 +248,15 @@ void motor_control() {
     digitalWrite(in2, LOW);
   }
 
-   analogWrite(enB, min(abs(int(pos_pidOUT)) + 100.0, 255));
-   analogWrite(enA, min(abs(int(pos_pidOUT)) + 100.0, 255));
+   if(pos_pidOUT != 0){
+    analogWrite(enB, min(abs(int(pos_pidOUT)) + 20.0, 255));
+    analogWrite(enA, min(abs(int(pos_pidOUT)) + 20.0, 255));
+   }
+   if(abs(pos_pidOUT)      >= 255){
+      digitalWrite(LED_BUILTIN,HIGH);
+    }else{
+      digitalWrite(LED_BUILTIN,LOW);  
+    }
 }
 
 
@@ -267,11 +269,14 @@ void printEncoder() {
     //Serial.println(position_delta);
   }
 }
+double low_pass_filter(double alpha_val, double prev_val, double raw_val){
+  return alpha_val*raw_val + (1 - alpha_val)*prev_val;
+}
 
 //With the settings above, this IRS will trigger each 500ms.
 ISR(TIMER1_COMPA_vect){
   TCNT1  = 0;                  //First, set the timer back to 0 so it resets for next interrupt
-  current_pos = ypr[2];// * 180/M_PI;
+  current_pos = low_pass_filter(alpha, current_pos, ypr[2]);// * 180/M_PI;
   pos_PID.Compute();
   motor_control();
 }
